@@ -1,0 +1,29 @@
+ransom_cost_value = {
+	if = {
+		limit = {
+			NOT = {
+				exists = liege
+			}
+		}
+		value = { # Rich guests can pay a bit more...
+			add = ransom_cost
+			if = {
+				limit = {
+					gold >= 100
+				}
+				add = 90
+			}
+		}
+	}
+	else_if = {
+		limit = {
+			exists = imprisoner
+			imprisoner = { has_perk = golden_obligations_perk }
+			ransom_cost < imprisoner.golden_obligation_value
+		}
+		value = imprisoner.golden_obligation_value
+	}
+	else = {
+		value = ransom_cost
+	}
+}
