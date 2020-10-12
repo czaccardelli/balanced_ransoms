@@ -318,6 +318,37 @@ ransom_interaction = {
 			}
 			desc = COWED_REASON
 		}
+        modifier = { # ransom higher priority characters first
+            subtract = 1000
+            trigger = {
+                scope:recipient = {
+                    OR = {
+                        AND = {
+                            # ransom yourself first
+                            NOT = { scope:recipient = scope:secondary_recipient }
+                            is_imprisoned_by = scope:actor
+                        }
+                        AND = {
+                            # ransom children before others
+                            NOT = { is_parent_of = scope:secondary_recipient }
+                            any_child = { is_imprisoned_by = scope:actor }
+                        }
+                        NAND = {
+                            AND = {
+                                NOT = { scope:recipient = scope:secondary_recipient }
+                                is_imprisoned_by = scope:actor
+                            }
+                            AND = {
+                                NOT = { is_parent_of = scope:secondary_recipient }
+                                any_child = { is_imprisoned_by = scope:actor }
+                            }
+                        }
+                    }
+                }
+            }
+            desc = UNIMPORTANT_CHAR_REASON # TODO: better desc text
+        }
+        ### ECONOMICS MODIFIERS ###
         modifier = { # Only ransom certain characters when there's enough money/income
             subtract = 100
             trigger = {
