@@ -1,0 +1,408 @@
+ransom_interaction = {
+	interface_priority = 50
+	common_interaction = yes
+	use_diplomatic_range = no
+	category = interaction_category_prison
+	special_interaction = ransom_interaction
+	redirect = {
+		scope:recipient = {
+			save_scope_as = secondary_recipient
+			if = {
+				limit = {
+					is_ruler = no
+					exists = liege
+				}
+				liege = {
+					save_scope_as = recipient
+				}
+			}
+		}
+	}
+
+	desc = ransom_interaction_desc
+
+	notification_text = {
+		first_valid = {
+			triggered_desc = {
+				trigger = {
+					scope:secondary_recipient = scope:recipient
+				}
+				desc = OFFER_RANSOM_PROPOSAL_PERSONAL
+			}
+			desc = OFFER_RANSOM_PROPOSAL
+		}
+	}
+	
+	is_shown = {
+		scope:secondary_recipient = {
+			#exists = liege
+			is_imprisoned_by = scope:actor
+		}
+		NOT = {
+			scope:actor = scope:recipient
+		}
+	}
+
+	is_valid_showing_failures_only = {
+		trigger_if = {
+			limit = {
+				scope:invalid = yes
+			}
+			always = no
+		}
+
+		scope:recipient = { is_diplomatically_available = yes } #Payer
+		scope:secondary_recipient = { is_diplomatically_available = yes } #Prisoner
+		scope:secondary_recipient = {
+			custom_description = {
+				text = "currently_being_tortured"
+				NOT = { has_character_flag = is_being_tortured }
+			}
+		}
+	}
+	
+	on_accept = {
+		# Set up event scopes and trigger the exchange.
+		if = {
+			limit = { scope:secondary_recipient = { is_imprisoned_by = scope:actor } } # To prevent simultaneous release-shenanigans
+			scope:secondary_recipient = {
+				save_scope_as = prisoner
+			}
+			scope:recipient = {
+				save_scope_as = payer
+
+				# If the recipient doesn't have enough funds to pay the full amount and we're only requesting their current funds, save how much they've agreed to pay.
+				if = {
+					limit = { exists = scope:current_gold }
+					save_scope_value_as = {
+						name = ransom_saved_gold_value
+						value = scope:payer.current_gold_value
+					}
+				}
+			}
+			scope:actor = {
+				save_scope_as = imprisoner
+
+				# Must come after we save the payment value, or the payer won't know how much they need to pay.
+				send_interface_message = {
+					type = event_prison_good
+					title = msg_ransom_prisoner
+					right_icon = scope:recipient
+					left_icon = scope:prisoner
+					ransom_interaction_effect = yes
+				}
+			}
+		}
+	}
+
+	on_decline = {
+		# If a player declines this ransom offer, wait 10 years before sending another one (they presumably will ransom that character themselves when they want them back).
+		if = {
+			limit = { scope:recipient = { is_ai = no } }
+			scope:secondary_recipient = {
+				add_character_flag = {
+					flag = character_ransom_refused_by_player
+					years = 10
+				}
+			}
+		}		
+
+		# Trigger notification event
+		scope:actor = {
+			trigger_event = char_interaction.0131
+		}
+	}
+	
+	# Pay me what they're worth!
+	send_option = {
+		is_shown = {
+			scope:recipient = {
+				gold >= scope:secondary_recipient.ransom_cost_value
+			}
+		}
+		flag = gold
+		localization = "RANSOM_GOLD_OPTION"
+	}
+
+	# If you don't have what they're worth, pay me what you have!
+	send_option = {
+		is_shown = {
+			scope:recipient = {
+				gold < scope:secondary_recipient.ransom_cost_value
+				gold > 0
+			}
+		}
+		flag = current_gold
+		localization = "RANSOM_CURRENT_GOLD_OPTION"
+	}
+	
+	send_option = {
+		is_shown = {
+			trigger_if = { # in the mass action ransom we only want to do it for gold
+				limit = { exists = scope:mass_action }
+				scope:mass_action = no
+			}
+		}
+		is_valid = {
+			scope:actor = {
+				can_add_hook = { #To match the hook added through ransom_interaction_effect
+					target = scope:recipient
+					type = favor_hook
+				}
+			}
+		}
+		flag = favor
+		localization = "RANSOM_FAVOR_OPTION"
+	}
+	
+	send_option = {
+		is_shown = { # When doing the mass ransom, its possible for no option to be valid for the gold costs, so instead of defaulting wrong we explitly fail it
+			exists = scope:mass_action
+			scope:mass_action = yes
+		}
+		flag = invalid
+	}
+	
+	localization_values = {
+		RANSOM_COST = scope:secondary_recipient.ransom_cost_value
+		CURRENT_GOLD = scope:recipient.gold
+	}
+	
+	ai_accept = {
+		base = 0
+		modifier = { # Greedy characters can have their greed get the better of them...
+			add = { 
+				value = scope:recipient.ai_greed
+				multiply = -0.5 
+			}
+			scope:recipient.ai_greed >= medium_positive_ai_value
+			scope:gold = yes
+			NOT = {
+				scope:recipient = scope:secondary_recipient
+			}		
+			desc = AI_VALUE_MODIFIER_GREED
+		}
+		modifier = { # Generous characters are more willing to pay
+			add = { 
+				value = scope:recipient.ai_greed
+				multiply = -0.10 
+			}
+			scope:gold = yes
+			NOT = {
+				scope:recipient = scope:secondary_recipient
+			}
+			scope:recipient.ai_greed <= medium_negative_ai_value 
+			desc = AI_VALUE_MODIFIER_GENEROUS
+		}
+		modifier = {
+			add = -10
+			NOT = { scope:recipient = scope:secondary_recipient }
+			scope:recipient = {
+				NOR = {
+					is_spouse_of = scope:secondary_recipient
+					is_close_or_extended_family_of = scope:secondary_recipient
+					has_relation_lover = scope:secondary_recipient
+					has_relation_friend = scope:secondary_recipient
+					has_secret_relation_lover = scope:secondary_recipient
+					has_relation_soulmate = scope:secondary_recipient
+					has_relation_best_friend = scope:secondary_recipient
+					is_parent_of = scope:secondary_recipient
+				}
+			}
+			desc = "UNIMPORTANT_CHAR_REASON"
+		}
+		modifier = {
+			add = 100
+			scope:recipient = scope:secondary_recipient
+			desc = "WANTS_FREEDOM_REASON"
+		}
+		modifier = { # Acceptance boon for lovers, friends, etc
+			add = 25
+			NOT = { scope:recipient = scope:secondary_recipient }
+			scope:recipient = {
+				OR = {
+					is_spouse_of = scope:secondary_recipient
+					is_close_or_extended_family_of = scope:secondary_recipient
+					has_relation_lover = scope:secondary_recipient
+					has_relation_friend = scope:secondary_recipient
+					has_secret_relation_lover = scope:secondary_recipient
+				}
+				NOR = {
+					has_relation_soulmate = scope:secondary_recipient
+					has_relation_best_friend = scope:secondary_recipient
+					is_parent_of = scope:secondary_recipient
+				}
+			}
+			desc = "DEAR_TO_ME_REASON"
+		}
+		modifier = { # Massive acceptance boon for Soulmates and Best Friends
+			add = 200
+			scope:recipient = {
+				OR = {
+					has_relation_soulmate = scope:secondary_recipient
+					has_relation_best_friend = scope:secondary_recipient
+					is_parent_of = scope:secondary_recipient
+				}
+				NOR = {
+					is_spouse_of = scope:secondary_recipient
+					AND = {
+						NOT = {
+							is_parent_of = scope:secondary_recipient
+						}
+						is_close_or_extended_family_of = scope:secondary_recipient
+					}
+					has_relation_lover = scope:secondary_recipient
+					has_relation_friend = scope:secondary_recipient
+					has_secret_relation_lover = scope:secondary_recipient
+				}
+			}
+			desc = "DEAR_TO_ME_REASON"
+		}
+		modifier = { # Say no to rivals
+			add = -200
+			scope:recipient = {
+				has_relation_rival = scope:secondary_recipient
+			}
+			desc = "RIVAL_TO_ME_REASON"
+		}
+		modifier = { # Say no to rivals
+			add = -500
+			scope:recipient = {
+				has_relation_nemesis = scope:secondary_recipient
+			}
+			desc = "NEMESIS_TO_ME_REASON"
+		}
+		modifier = {
+			add = 10
+			scope:recipient = {
+				NOR = {
+					this = scope:secondary_recipient
+					is_spouse_of = scope:secondary_recipient
+					is_close_or_extended_family_of = scope:secondary_recipient
+					has_relation_lover = scope:secondary_recipient
+					has_relation_soulmate = scope:secondary_recipient
+					has_secret_relation_lover = scope:secondary_recipient
+				}
+				NOR = {
+					has_relation_rival = scope:secondary_recipient
+					has_relation_nemesis = scope:secondary_recipient
+				}
+			}
+			scope:recipient.dynasty = scope:secondary_recipient.dynasty
+			desc = "MY_DYNASTY_REASON"
+		}
+		modifier = { # An Intimidated recipient is significantly more likely to accept an offer from the liege
+			add = 40
+			trigger = {
+				scope:recipient = {
+					target_is_liege_or_above = scope:actor
+					has_dread_level_towards = {
+						target = scope:actor
+						level = 1
+					}
+				}
+			}
+			desc = INTIMIDATED_REASON
+		}
+
+		modifier = { # An Cowed recipient is significantly more likely to accept an offer from the liege
+			add = 100
+			trigger = {
+				scope:recipient = {
+					target_is_liege_or_above = scope:actor
+					has_dread_level_towards = {
+						target = scope:actor
+						level = 2
+					}
+				}
+			}
+			desc = COWED_REASON
+		}
+        modifier = { # Only ransom certain characters when there's enough money/income
+            subtract = 100
+            trigger = {
+                scope:recipient = {
+                    OR = {
+                        yearly_character_income <= scope:secondary_recipient.half_ransom_cost_value
+                        half_current_gold <= scope:secondary_recipient.ransom_cost_value
+                    }
+                }
+            }
+            desc = GOLD_NEGATIVE_REASON
+        }
+	}
+	
+	# AI
+	ai_targets = {
+		ai_recipients = prisoners
+	}
+	ai_frequency = 6
+
+	ai_potential = {
+		always = yes
+	}
+
+	ai_will_do = {
+		base = 0
+		
+		modifier = {
+			add = 100
+			OR = {
+				scope:gold = yes
+				AND = {
+					scope:recipient = {
+						gold >= 25
+					}
+					scope:secondary_recipient = {
+						time_in_prison = { years > 1 }
+					}
+					scope:current_gold = yes
+				}
+			}
+		}
+		
+		modifier = {
+			add = ai_greed
+			ai_greed > 0
+			scope:gold = yes
+		}
+		
+		modifier = {
+			add = -100
+			has_relation_rival = scope:secondary_recipient
+		}
+		
+		modifier = {
+			add = -300
+			has_relation_nemesis = scope:secondary_recipient
+		}
+		
+		modifier = {
+			add = 100
+			scope:favor = yes
+			scope:recipient = {
+				OR = {
+					is_vassal_of = scope:actor
+					AND = {
+						exists = liege
+						liege = scope:actor
+					}
+				}
+			}
+		}
+		
+		modifier = {
+			factor = 0
+			is_at_war = yes
+		}
+
+		modifier = { # Don't annoy players
+			factor = 0
+			scope:recipient = { is_ai = no }
+			OR = {
+				scope:recipient = { is_at_war = yes }
+				scope:secondary_recipient = { has_character_flag = character_ransom_refused_by_player }
+			}
+		}		
+	}
+}

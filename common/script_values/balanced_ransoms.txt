@@ -1,4 +1,4 @@
-ransom_cost_value = {
+﻿ransom_cost_value = {
 	if = {
 		limit = {
 			NOT = {
@@ -25,5 +25,13 @@ ransom_cost_value = {
 	}
 	else = {
 		value = ransom_cost
+	}
+}
+
+half_current_gold = {
+	value = {
+		add = gold
+		divide = 2
+		min = 1
 	}
 }
