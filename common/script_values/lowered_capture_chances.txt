@@ -1,2 +1,2 @@
-siege_base_capture_chance = 25
+﻿siege_base_capture_chance = 25
 raid_base_capture_chance = 10
