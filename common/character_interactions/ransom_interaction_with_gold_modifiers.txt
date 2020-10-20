@@ -319,22 +319,26 @@
 			desc = COWED_REASON
 		}
         modifier = { # ransom higher priority characters first
-            add = -1000
             scope:recipient = {
-                OR = {
-                    AND = {
+                if = {
+					limit = {
+						AND = {
                         # ransom yourself first
                         NOT = { scope:recipient = scope:secondary_recipient }
                         is_imprisoned_by = scope:actor
-                    }
+                    	}
+					}
+				}
+				else_if = {
                     AND = {
                         # ransom children before others
                         NOT = { is_parent_of = scope:secondary_recipient }
                         any_child = { is_imprisoned_by = scope:actor }
                     }
                 }
+				add = -1000
             }
-            desc = UNIMPORTANT_CHAR_REASON # TODO: better desc text
+            desc = more_important_characters_to_ransom_first
         }
         ### ECONOMICS MODIFIERS ###
         # TODO: add exemptions when requesting favor hook instead of gold
