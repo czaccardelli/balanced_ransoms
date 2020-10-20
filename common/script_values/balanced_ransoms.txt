@@ -1,22 +1,6 @@
 ﻿ransom_cost_value = {
 	if = {
 		limit = {
-			NOT = {
-				exists = liege
-			}
-		}
-		value = { # Rich guests can pay a bit more...
-			add = ransom_cost
-			if = {
-				limit = {
-					gold >= 100
-				}
-				add = 90
-			}
-		}
-	}
-	else_if = {
-		limit = {
 			exists = imprisoner
 			imprisoner = { has_perk = golden_obligations_perk }
 			ransom_cost < imprisoner.golden_obligation_value
@@ -24,7 +8,27 @@
 		value = imprisoner.golden_obligation_value
 	}
 	else = {
-		value = ransom_cost
+		value = ransom_cost_scaled_value
+	}
+	# rich characters can pay more
+	if = {
+		limit = {
+			gold > double_ransom_cost_scaled_value
+		}
+		add = {
+			# try to get 100% more out of characters that can afford to pay double the base ransom with their current gold
+			value = ransom_cost_scaled_value
+		}
+	}
+	else_if = {
+		limit = {
+			gold > ransom_cost_scaled_value
+		}
+		add = {
+			# try to get 50% more out of characters that can afford to pay double the base ransom with their current gold
+			value = ransom_cost_scaled_value
+			divide = 2
+		}
 	}
 }
 
@@ -34,4 +38,24 @@ half_current_gold = {
 		divide = 2
 		min = 1
 	}
+}
+
+ransom_cost_scaled_value = {
+	# based on 10 months of income for ruler himself or primary heir
+	value = ransom_cost
+	if = {
+		limit = {
+			is_ruler = no
+			exists = liege
+			}
+	}
+	multiply = liege.monthly_character_income
+	else = {
+		multiply = monthly_character_income
+	}
+}
+
+double_ransom_cost_scaled_value = {
+	value = ransom_cost_scaled_value
+	multiply = 2
 }
