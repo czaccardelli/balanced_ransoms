@@ -1,4 +1,4 @@
-NImprisonment = {
+﻿NImprisonment = {
 	RANSOM_COST_BY_TIER = {
 		10		# Unlanded
 		10		# Baron
