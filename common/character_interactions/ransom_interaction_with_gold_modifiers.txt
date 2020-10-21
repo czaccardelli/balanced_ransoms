@@ -320,7 +320,7 @@
 		}
         modifier = { # ransom higher priority characters first
             scope:recipient = {
-                if = {
+                trigger_if = {
 					limit = {
 						AND = {
                         # ransom yourself first
@@ -329,7 +329,7 @@
                     	}
 					}
 				}
-				else_if = {
+				trigger_else_if = {
                     AND = {
                         # ransom children before others
                         NOT = { is_parent_of = scope:secondary_recipient }
