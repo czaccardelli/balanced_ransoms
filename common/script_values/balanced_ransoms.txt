@@ -48,8 +48,8 @@ ransom_cost_scaled_value = {
 			is_ruler = no
 			exists = liege
 			}
+		multiply = liege.monthly_character_income
 	}
-	multiply = liege.monthly_character_income
 	else = {
 		multiply = monthly_character_income
 	}
