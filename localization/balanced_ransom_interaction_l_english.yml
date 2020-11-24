@@ -1,2 +1,2 @@
 ﻿l_english:
- more_important_characters_to_ransom_first:0 "Pay ransom on [liege|E] or [close_family|E] first"
+ more_important_characters_to_ransom_first:0 "Pay ransom on [liege|E] or [close_family|E] first: $VALUE|=+0$"
