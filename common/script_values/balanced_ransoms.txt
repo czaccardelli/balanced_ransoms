@@ -68,8 +68,19 @@ ransom_cost_scaled_value = {
 		limit = {
 			is_ruler = no
 			exists = liege
-			}
+		}
 		multiply = liege.monthly_character_income
+	}
+	# or if liege or character has no income, a flat value based on their fame and dynasty's renown
+	else_if = {
+		limit = {
+			is_ruler = no
+			NOT = { exists = liege }
+		}
+		multiply = {
+			value = prestige_level
+			add = dynasty.dynasty_prestige_level
+		}
 	}
 	else = {
 		multiply = monthly_character_income

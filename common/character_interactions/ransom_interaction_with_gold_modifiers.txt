@@ -350,7 +350,6 @@
             desc = more_important_characters_to_ransom_first
         }
         ### ECONOMICS MODIFIERS ###
-        # TODO: add exemptions when requesting favor hook instead of gold
         modifier = { # Only ransom certain characters when there's enough money/income
             add = -100
             AND = {
@@ -361,6 +360,8 @@
                     }
                 }
                 NOT = { scope:recipient = scope:secondary_recipient } # always try to ransom yourself
+				# don't apply economics modifier when a favor is requested...
+				NOT = { always = scope:favor }
             }
             desc = GOLD_NEGATIVE_REASON
         }
